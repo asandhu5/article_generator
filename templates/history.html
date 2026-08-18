@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}History — AI Article Generator{% endblock %}
+{% block content %}
+
+<h2 style="margin-bottom:20px;">Past Articles</h2>
+
+{% if not articles %}
+<div class="card empty-state">
+  <h3>No articles yet</h3>
+  <p>Generate your first article and it'll show up here.</p>
+  <a href="{{ url_for('index') }}" class="btn btn-primary">New Article</a>
+</div>
+{% else %}
+<div class="card-grid">
+  {% for a in articles %}
+  <a class="item-card" href="{{ url_for('article', article_id=a.id) if a.status == 'ready' else url_for('generate_page', article_id=a.id) }}">
+    <span class="badge badge-{{ a.status }}"><span class="dot {{ 'dot-pulse' if a.status == 'generating' else '' }}"></span> {{ a.status | title }}</span>
+    {% if a.source == 'demo' %}<span class="badge badge-demo" style="margin-left:6px;">Sample</span>{% endif %}
+    <div class="item-title" style="margin-top:10px;">{{ a.title or a.topic }}</div>
+    <div class="item-date">{{ a.tone | title }} &middot; {{ a.word_count }} words &middot; {{ a.created_at[:10] if a.created_at else '' }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

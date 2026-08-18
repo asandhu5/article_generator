@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Generating — AI Article Generator{% endblock %}
+{% block content %}
+
+<div class="card processing-panel" id="processing-panel" data-article-id="{{ article.id }}">
+  {% if article.status == 'error' %}
+    <h2>Generation failed</h2>
+    <div class="banner banner-danger" style="text-align:left; margin-top:20px;">{{ article.error }}</div>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary" style="margin-top:16px;">Back to setup</a>
+  {% else %}
+    <div class="spinner"></div>
+    <h2>Writing your article…</h2>
+    <p>“{{ article.topic }}” &middot; {{ article.word_count }} words &middot; {{ article.model }}</p>
+    <div class="progress-label" id="progress-label">Step {{ article.step_index }} of {{ article.step_total or '?' }}</div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="current-step-text" id="current-step-text">{{ article.current_step }}</div>
+    <ul class="step-log" id="step-log"></ul>
+  {% endif %}
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+  window.__ARTICLE__ = {
+    id: {{ article.id | tojson }},
+    status: {{ article.status | tojson }},
+    statusUrl: {{ url_for('api_status', article_id=article.id) | tojson }},
+    articleUrl: {{ url_for('article', article_id=article.id) | tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='js/generating.js') }}"></script>
+{% endblock %}
