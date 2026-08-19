@@ -37,7 +37,7 @@ class Config:
 def _load() -> Config:
     data_dir = BASE_DIR / "data"
     return Config(
-        openai_api_key=os.getenv("OPENAI_API_KEY", "").strip(),
+        openai_api_key=os.getenv("openai_api_key", "").strip(),
         host=os.getenv("HOST", "127.0.0.1").strip(),
         port=_int_env("PORT", 5050),
         data_dir=data_dir,

@@ -1,8 +1,4 @@
-"""Seed the local history with one hand-written sample article so the
-dashboard has something to show on first run, with no OpenAI key required.
 
-Safe to re-run: skips seeding if any demo article already exists.
-"""
 from __future__ import annotations
 
 import logging

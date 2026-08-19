@@ -28,7 +28,7 @@ def markdown_to_docx_bytes(markdown_text: str) -> bytes:
 
 
 def _render_tokens(document: Document, tokens: list[Token]) -> None:
-    list_stack: list[str] = []  # one entry per nesting level: "bullet" | "ordered"
+    list_stack: list[str] = []
     seen_first_heading = False
     i = 0
     n = len(tokens)
@@ -151,9 +151,6 @@ def _add_inline(paragraph, children: list[Token], base_bold: bool = False, base_
                 run = paragraph.add_run(tok.content)
                 run.bold = base_bold or bold_depth > 0
                 run.italic = base_italic or italic_depth > 0
-        # image tokens are intentionally not handled -- long-form generated
-        # articles from this app never contain them.
-
 
 def _add_hyperlink(paragraph, text: str, url: str) -> None:
     part = paragraph.part
@@ -209,11 +206,7 @@ def _add_horizontal_rule(paragraph) -> None:
 
 
 def _collect_table(tokens: list[Token], start: int) -> tuple[int, Optional[list], list]:
-    """Walk from just after table_open to table_close.
 
-    Returns (index_of_table_close, header_row_cells_or_None, body_rows).
-    Each "row" is a list of inline-children lists, one per cell.
-    """
     header_row: Optional[list] = None
     body_rows: list = []
     current_row: list = []

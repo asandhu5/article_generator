@@ -1,9 +1,4 @@
-"""JSON-file-backed persistence for generated articles.
 
-Same rationale as any single-user local tool: no database needed. Each
-article gets a folder under data/articles/<id>/ holding the final Markdown
-and a metadata JSON; a flat index.json lists them all for the history view.
-"""
 from __future__ import annotations
 
 import json

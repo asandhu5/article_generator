@@ -10,7 +10,7 @@
   {% else %}
     <div class="spinner"></div>
     <h2>Writing your article…</h2>
-    <p>“{{ article.topic }}” &middot; {{ article.word_count }} words &middot; {{ article.model }}</p>
+    <p>“{{ article.topic }}”</p>
     <div class="progress-label" id="progress-label">Step {{ article.step_index }} of {{ article.step_total or '?' }}</div>
     <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
     <div class="current-step-text" id="current-step-text">{{ article.current_step }}</div>

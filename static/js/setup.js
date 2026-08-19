@@ -36,7 +36,6 @@
       audience: document.getElementById("audience").value,
       tone: toneGrid.querySelector("input[name=tone]:checked").value,
       word_count: wordCountInput.value,
-      model: document.getElementById("model").value,
       temperature: temperatureInput.value,
     };
 

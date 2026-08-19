@@ -26,15 +26,11 @@ MAX_WORD_COUNT = 5000
 @app.route("/")
 def index():
     has_demo = any(a.get("source") == "demo" for a in store.list_articles())
-    return render_template(
-        "setup.html", config=config, models=chains.SUPPORTED_MODELS, has_demo=has_demo, active_page="setup"
-    )
+    return render_template("setup.html", config=config, has_demo=has_demo, active_page="setup")
 
 
 @app.route("/api/generate", methods=["POST"])
 def api_generate():
-    if not config.openai_configured:
-        return jsonify({"error": "OpenAI isn't configured yet. Add OPENAI_API_KEY to your .env file and restart the app."}), 400
 
     payload = request.get_json(force=True, silent=True) or {}
     topic = (payload.get("topic") or "").strip()[:300]
@@ -158,11 +154,6 @@ def _safe_filename(text: str) -> str:
     safe = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in text).strip("_")
     return safe or "article"
 
-
-# ---------------------------------------------------------------------------
-# Background pipeline
-# ---------------------------------------------------------------------------
-
 def _run_pipeline(article_id: str, topic: str, tone: str, audience: str, word_count: int, model: str, temperature: float) -> None:
     started = time.monotonic()
     try:
@@ -173,7 +164,7 @@ def _run_pipeline(article_id: str, topic: str, tone: str, audience: str, word_co
         store.save_outline(article_id, outline.model_dump())
 
         total_sections = len(outline.sections)
-        step_total = total_sections + 3  # intro + sections + conclusion + polish
+        step_total = total_sections + 4  # intro + sections + conclusion + polish + further reading
         store.update(article_id, title=outline.title, step_index=1, step_total=step_total, current_step="Writing introduction...")
 
         intro_budget, section_budget, conclusion_budget = chains.compute_word_budgets(word_count, total_sections)
@@ -206,6 +197,15 @@ def _run_pipeline(article_id: str, topic: str, tone: str, audience: str, word_co
         polish_result = chains.polish_article(llm, draft, tone, audience)
 
         final_article = polish_result.text
+
+        store.update(article_id, step_index=4 + total_sections, current_step="Suggesting further reading...")
+        try:
+            further_reading_result = chains.generate_further_reading(llm, outline, topic, tone, audience)
+            if further_reading_result.text:
+                final_article = final_article.rstrip() + "\n\n" + further_reading_result.text.strip() + "\n"
+        except chains.ArticleGenerationError:
+            logger.warning("Further-reading suggestions failed for article %s; continuing without them", article_id)
+
         store.save_markdown(article_id, final_article)
         store.update(
             article_id,

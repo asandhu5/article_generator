@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_MODELS = ["gpt-4o-mini", "gpt-4o"]
+SUPPORTED_MODELS = ["openai"]
 MIN_SECTIONS = 3
 MAX_SECTIONS = 5
 
@@ -46,21 +46,21 @@ def _handle_api_errors(func: Callable) -> Callable:
         try:
             return func(*args, **kwargs)
         except AuthenticationError as exc:
-            logger.warning("OpenAI authentication failed: %s", exc)
+            logger.warning("Authentication failed: %s", exc)
             raise ArticleGenerationError(
-                "Authentication with OpenAI failed. Check that OPENAI_API_KEY in your .env file is correct and active."
+                "Authentication failed. Check that your key in the .env file is correct and active."
             ) from exc
         except RateLimitError as exc:
-            logger.warning("OpenAI rate limit/quota exceeded: %s", exc)
+            logger.warning("Rate limit/quota exceeded: %s", exc)
             raise ArticleGenerationError(
-                "OpenAI rate limit or quota was exceeded. Wait a moment and try again, or check your plan and billing details."
+                "The rate limit or quota was exceeded. Wait a moment and try again, or check your plan and billing details."
             ) from exc
         except APIConnectionError as exc:
-            logger.warning("Could not reach OpenAI: %s", exc)
-            raise ArticleGenerationError("Could not reach the OpenAI API. Check your internet connection and try again.") from exc
+            logger.warning("Could not reach the generation service: %s", exc)
+            raise ArticleGenerationError("Could not reach the generation service. Check your internet connection and try again.") from exc
         except APIError as exc:
-            logger.exception("OpenAI API error")
-            raise ArticleGenerationError(f"OpenAI API returned an error: {exc}") from exc
+            logger.exception("Generation service returned an error")
+            raise ArticleGenerationError("The generation service returned an error. Please try again.") from exc
         except ArticleGenerationError:
             raise
         except Exception as exc:  # noqa: BLE001 -- last resort, but always logged first
@@ -74,9 +74,8 @@ def get_llm(model: str, temperature: float, api_key: str) -> ChatOpenAI:
     if model not in SUPPORTED_MODELS:
         raise ArticleGenerationError(f"Unsupported model: {model}")
     if not api_key:
-        raise ArticleGenerationError("No OpenAI API key configured. Copy .env.example to .env and set OPENAI_API_KEY.")
-    return ChatOpenAI(model=model, temperature=temperature, api_key=api_key, timeout=180, max_retries=2)
-
+        raise ArticleGenerationError("No key configured. Copy .env.example to .env and set your key.")
+    return ChatOpenAI(model=model, temperature=temperature, api_key=api_key, timeout=180, max_retries=2, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
 
 def compute_word_budgets(word_count: int, num_sections: int) -> tuple[int, int, int]:
     """Split a requested total word count into (intro, per_section, conclusion) budgets.
@@ -248,7 +247,6 @@ conclusion_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-
 @_handle_api_errors
 def write_conclusion(
     llm: ChatOpenAI, outline: ArticleOutline, previous_context: str, tone: str, audience: str, word_budget: int
@@ -290,13 +288,9 @@ polish_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-
 @_handle_api_errors
 def polish_article(llm: ChatOpenAI, draft: str, tone: str, audience: str) -> GenerationResult:
-    """Polish the full draft. Falls back to the unpolished draft (never truncated,
-    since it's just a copy of already-generated text) if even a generous budget
-    isn't enough to have the model safely re-emit the whole thing.
-    """
+
     draft_words = count_words(draft)
     budget = _tokens_for_words(draft_words, margin=400)
 
@@ -312,6 +306,40 @@ def polish_article(llm: ChatOpenAI, draft: str, tone: str, audience: str) -> Gen
 
     logger.warning("Polish pass still truncated at the output ceiling; returning the unpolished draft instead")
     return GenerationResult(text=draft, truncated=True)
+
+
+FURTHER_READING_SYSTEM_PROMPT = """You suggest general directions for readers who want to learn more \
+about a topic after finishing an article. You point to types of sources and subject areas -- industry \
+reports, academic research, case studies, government or standards-body data, and similar -- and never \
+invent specific book titles, article titles, author names, publication names, or URLs, since doing so \
+would present made-up references as if they were real, verified citations. Keep every suggestion general \
+and topic-based, phrased as a direction to explore rather than a source that exists."""
+
+further_reading_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", FURTHER_READING_SYSTEM_PROMPT),
+        (
+            "human",
+            "Article title: {title}\nTopic: {topic}\nTone: {tone}\nAudience: {audience}\n\n"
+            "Suggest 3 to 5 general directions for further reading on this topic -- types of "
+            "sources and subject areas only, never specific titles, authors, publications, or "
+            "links. Start with the heading \"## Further Reading\" followed by a Markdown bullet "
+            "list, one direction per bullet. Return only Markdown, no commentary.",
+        ),
+    ]
+)
+
+
+@_handle_api_errors
+def generate_further_reading(
+    llm: ChatOpenAI, outline: ArticleOutline, topic: str, tone: str, audience: str
+) -> GenerationResult:
+    return _invoke(
+        llm,
+        further_reading_prompt,
+        {"title": outline.title, "topic": topic, "tone": tone, "audience": audience},
+        max_tokens=_tokens_for_words(150),
+    )
 
 
 def assemble_draft(outline: ArticleOutline, intro: str, section_texts: List[str], conclusion: str) -> str:

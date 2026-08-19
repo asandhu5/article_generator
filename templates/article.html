@@ -9,8 +9,7 @@
     </span>
     <h1>{{ article.title or article.topic }}</h1>
     <div class="article-meta">
-      {{ article.tone | title }} tone &middot; for {{ article.audience }} &middot; {{ article.model }}
-      {% if article.generation_seconds %} &middot; generated in {{ article.generation_seconds }}s{% endif %}
+      {{ article.tone | title }} tone &middot; for {{ article.audience }}
     </div>
   </div>
   <div class="article-actions">
@@ -22,29 +21,9 @@
 
 {% if article.polish_skipped %}
 <div class="banner banner-warning">
-  The final AI polish pass couldn't complete within the model's output limit for an article this long, so this is the pre-polish draft (fully complete, just not editorially smoothed). Try a shorter word count for a polished pass, or regenerate.
+  The final editorial polish pass couldn't complete for an article this long, so this is the complete pre-polish draft. Try a shorter word count for a polished pass, or regenerate.
 </div>
 {% endif %}
-
-<div class="stat-grid">
-  <div class="stat-tile">
-    <div class="stat-label">Word Count</div>
-    <div class="stat-value">{{ article.generated_words }}</div>
-    <div class="stat-sub">target was {{ article.word_count }}</div>
-  </div>
-  <div class="stat-tile">
-    <div class="stat-label">Sections</div>
-    <div class="stat-value" id="stat-sections">–</div>
-  </div>
-  <div class="stat-tile">
-    <div class="stat-label">Reading Time</div>
-    <div class="stat-value" id="stat-reading-time">–</div>
-  </div>
-  <div class="stat-tile">
-    <div class="stat-label">Generation Time</div>
-    <div class="stat-value">{{ article.generation_seconds }}s</div>
-  </div>
-</div>
 
 <div class="article-layout">
   <aside class="toc">

@@ -21,14 +21,6 @@
     tocList.appendChild(li);
   });
 
-  const sectionsEl = document.getElementById("stat-sections");
-  if (sectionsEl) sectionsEl.textContent = headings.length;
-
-  const wordCount = markdownText.trim().split(/\s+/).filter(Boolean).length;
-  const readingMinutes = Math.max(1, Math.round(wordCount / 200));
-  const readingEl = document.getElementById("stat-reading-time");
-  if (readingEl) readingEl.textContent = `${readingMinutes} min`;
-
   // Scroll-spy: highlight the TOC entry for whichever heading is nearest
   // the top of the viewport.
   const tocLinks = Array.from(tocList.querySelectorAll("a"));
