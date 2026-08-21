@@ -79,10 +79,6 @@ scripts/seed_demo_data.py   Seeds one sample article from tests/fixtures/
 tests/                   pytest suite
 ```
 
-**Progress, for real**: unlike a single blocking API call, this pipeline runs
-in a background thread and reports its *actual* current step ("Writing
-section 2 of 4: Why the Cloud Stopped Being Enough") to the browser via
-polling -- not a fake animated spinner standing in for one opaque call.
 ---
 
 ## Running tests
